@@ -49,6 +49,8 @@
         .product-card {
             transition: all 0.3s ease;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
+            flex: 0 0 auto;
         }
         
         .product-card:hover {
@@ -80,6 +82,56 @@
             background: #c19b2c;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Carousel styles */
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease;
+            gap: 1.5rem;
+            padding: 1rem 0;
+        }
+        
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .carousel-btn:hover {
+            background: white;
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .carousel-btn.prev {
+            left: 10px;
+        }
+        
+        .carousel-btn.next {
+            right: 10px;
+        }
+        
+        .carousel-btn i {
+            color: var(--primary);
+            font-size: 1.2rem;
         }
 
         /* Mobile menu styles */
@@ -140,6 +192,11 @@
             
             .product-card h3 {
                 min-height: auto;
+            }
+            
+            .carousel-btn {
+                width: 30px;
+                height: 30px;
             }
         }
 
@@ -238,14 +295,23 @@
     <section id="products" class="py-20 px-4 bg-white">
         <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-4 luxury-font">Our <span class="text-[#d4af37]">Signature</span> Collection</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">Discover our premium selection of beauty products designed to enhance your natural beauty</p>
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 luxury-font">Our <span class="text-[#d4af37]">Best Selling</span> Collection</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Discover our top 10 best-selling beauty products loved by customers</p>
             </div>
             
-            <div id="featured-products" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Products will be loaded here dynamically -->
-                <div class="text-center py-8">
-                    <p class="text-gray-400">Loading products...</p>
+            <div class="carousel-container relative">
+                <button class="carousel-btn prev" onclick="moveCarousel(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="carousel-btn next" onclick="moveCarousel(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <div id="carousel-track" class="carousel-track">
+                    <!-- Products will be loaded here dynamically -->
+                    <div class="text-center py-2">
+                        <p class="text-gray-400">Loading products...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -729,6 +795,97 @@
             });
         }
         
+        // Carousel functionality
+        let currentSlide = 0;
+        let products = [];
+        const track = document.getElementById('carousel-track');
+        const slideWidth = 300 + 24; // Width of product card + gap
+        
+        function moveCarousel(direction) {
+            const productCount = products.length;
+            
+            // Calculate new slide position with infinite loop
+            currentSlide = (currentSlide + direction + productCount) % productCount;
+            
+            // For infinite loop effect, we'll adjust the position
+            let offset = -currentSlide * slideWidth;
+            
+            // If we're at the end, jump to the cloned start without animation
+            if (direction === 1 && currentSlide === 0) {
+                track.style.transition = 'none';
+                offset = -productCount * slideWidth;
+                track.style.transform = `translateX(${offset}px)`;
+                
+                // Force reflow
+                track.offsetHeight;
+                
+                // Now animate to the "real" first slide
+                track.style.transition = 'transform 0.5s ease';
+                currentSlide = 0;
+                offset = -currentSlide * slideWidth;
+                track.style.transform = `translateX(${offset}px)`;
+            } 
+            // If we're at the start and going backward, jump to the cloned end
+            else if (direction === -1 && currentSlide === productCount - 1) {
+                track.style.transition = 'none';
+                offset = 0;
+                track.style.transform = `translateX(${offset}px)`;
+                
+                // Force reflow
+                track.offsetHeight;
+                
+                // Now animate to the "real" last slide
+                track.style.transition = 'transform 0.5s ease';
+                currentSlide = productCount - 1;
+                offset = -currentSlide * slideWidth;
+                track.style.transform = `translateX(${offset}px)`;
+            } 
+            // Normal slide transition
+            else {
+                track.style.transition = 'transform 0.5s ease';
+                track.style.transform = `translateX(${offset}px)`;
+            }
+        }
+        
+        // Function to truncate product name to fit 2 lines
+        function truncateName(name) {
+            if (!name) return '';
+            // If name is short (less than ~30 chars), return as is
+            if (name.length <= 30) return name;
+            // Otherwise truncate to ~30 chars and add ellipsis
+            return name.substring(0, 30) + '...';
+        }
+
+        // Function to truncate description to 10 words
+        function truncateDescription(desc) {
+            if (!desc) return 'Premium quality product';
+            const words = desc.split(' ');
+            if (words.length <= 5) return desc;
+            return words.slice(0, 5).join(' ') + '...';
+        }
+
+        // Function to format price as Rp currency
+        function formatPrice(price) {
+            if (!price) return 'Rp0';
+            return 'Rp' + parseInt(price).toLocaleString('id-ID');
+        }
+
+        // Function to format sold count (1000 -> 1K, 1500 -> 1.5K, etc.)
+        function formatSoldCount(sold) {
+            if (!sold) return '0';
+            
+            if (sold >= 1000000) {
+                const millions = sold / 1000000;
+                // Check if it's a whole number
+                return millions % 1 === 0 ? millions + 'M' : millions.toFixed(1) + 'M';
+            } else if (sold >= 1000) {
+                const thousands = sold / 1000;
+                // Check if it's a whole number
+                return thousands % 1 === 0 ? thousands + 'K' : thousands.toFixed(1) + 'K';
+            }
+            return sold.toString();
+        }
+
         // Load featured products
         document.addEventListener('DOMContentLoaded', async () => {
             const { createClient } = supabase
@@ -737,63 +894,27 @@
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2dmdmbmpiaXlvYmp1eHdubWpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzMzk2NTMsImV4cCI6MjA2MTkxNTY1M30.JVIrgOLJsEpDmuPtqC4Zh6p62y2xr8RlaKNDb3B-kFQ'
             const client = createClient(supabaseUrl, supabaseKey)
 
-            // Function to truncate product name to fit 2 lines
-            function truncateName(name) {
-                if (!name) return '';
-                // If name is short (less than ~30 chars), return as is
-                if (name.length <= 30) return name;
-                // Otherwise truncate to ~30 chars and add ellipsis
-                return name.substring(0, 30) + '...';
-            }
-
-            // Function to truncate description to 10 words
-            function truncateDescription(desc) {
-                if (!desc) return 'Premium quality product';
-                const words = desc.split(' ');
-                if (words.length <= 10) return desc;
-                return words.slice(0, 10).join(' ') + '...';
-            }
-
-            // Function to format price as Rp currency
-            function formatPrice(price) {
-                if (!price) return 'Rp0';
-                return 'Rp' + parseInt(price).toLocaleString('id-ID');
-            }
-
-            // Function to format sold count (1000 -> 1K, 1500 -> 1.5K, etc.)
-            function formatSoldCount(sold) {
-                if (!sold) return '0';
-                
-                if (sold >= 1000000) {
-                    const millions = sold / 1000000;
-                    // Check if it's a whole number
-                    return millions % 1 === 0 ? millions + 'M' : millions.toFixed(1) + 'M';
-                } else if (sold >= 1000) {
-                    const thousands = sold / 1000;
-                    // Check if it's a whole number
-                    return thousands % 1 === 0 ? thousands + 'K' : thousands.toFixed(1) + 'K';
-                }
-                return sold.toString();
-            }
-
             async function loadFeaturedProducts() {
-                const productsContainer = document.getElementById('featured-products')
+                const productsContainer = document.getElementById('carousel-track')
                 productsContainer.innerHTML = '<div class="text-center py-8"><p class="text-gray-400">Loading products...</p></div>'
 
                 try {
-                    // Get top 3 products by sold count
-                    const { data: products, error: productsError } = await client
+                    // Get top 10 products by sold count
+                    const { data: productsData, error: productsError } = await client
                         .from('products')
                         .select('*')
                         .order('sold', { ascending: false })
-                        .limit(3)
+                        .limit(10)
 
                     if (productsError) throw productsError
 
-                    if (products.length === 0) {
+                    if (productsData.length === 0) {
                         productsContainer.innerHTML = '<div class="text-center py-8"><p class="text-gray-400">No products available</p></div>'
                         return
                     }
+
+                    // Store products for carousel
+                    products = productsData;
 
                     // Get images for these products
                     const productIds = products.map(p => p.id)
@@ -820,13 +941,12 @@
                             ? `${supabaseUrl}/storage/v1/object/public/picture-products/${photo.name}`
                             : 'https://placehold.co/600x400?text=No+Image'
                         
-                        const animationClass = index === 0 ? 'animate__fadeInUp' : 
-                                             index === 1 ? 'animate__fadeInUp animate__delay-1s' : 
-                                             'animate__fadeInUp animate__delay-2s'
+                        const animationClass = `animate__fadeInUp animate__delay-${index % 3}s`
 
-                        const badge = product.sold > 300 ? 
-                            '<div class="absolute top-4 right-4 bg-[#d4af37] text-white px-3 py-1 rounded-full text-xs font-bold">BESTSELLER</div>' : 
-                            (index === 0 ? '<div class="absolute top-4 right-4 bg-[#d4af37] text-white px-3 py-1 rounded-full text-xs font-bold">NEW</div>' : '')
+                        // Add BEST SELLER badge if sold > 100
+                        const badge = product.sold > 100 ? 
+                            '<div class="absolute top-4 right-4 bg-[#d4af37] text-white px-3 py-1 rounded-full text-xs font-bold">BEST SELLER</div>' : 
+                            ''
 
                         const shortName = truncateName(product.name);
                         const shortDescription = truncateDescription(product.desc)
